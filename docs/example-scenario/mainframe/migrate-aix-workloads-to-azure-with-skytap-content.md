@@ -1,8 +1,12 @@
-Skytap on Azure simplifies cloud migration for applications that run on IBM Power Systems. This example illustrates a migration of AIX logical partitions (LPARs) to Skytap on Azure and is based on best practices from recent customer experiences. A web app on Microsoft Azure gives users a modern interface for the resources running in LPARs on Skytap on Azure.
+Skytap on Azure provides a path for migrating and running traditional applications that depend on IBM Power Systems in Azure without requiring an immediate rewrite or replatforming effort. This example shows how to migrate AIX logical partitions (LPARs) to Skytap on Azure while integrating the migrated workloads with Azure networking, storage, and application services.
+
+Skytap on Azure supports IBM Power-based workloads, including AIX, IBM i, and Linux on Power, alongside x86 workloads. Depending on the Skytap region and workload requirements, IBM Power9 or Power10 infrastructure can be used to host these workloads. This approach lets organizations preserve existing IBM Power applications while incrementally adopting Azure-native services.
+
+A web application hosted in Azure provides a modern interface for services running on the AIX LPARs in Skytap on Azure.
 
 ## Architecture
 
-:::image type="content" border="false" source="media/migrate-aix-workloads-to-azure-with-skytap.svg" alt-text="Diagram that shows Azure components used to migrate IBM i workloads to Skytap on Azure." lightbox="media/migrate-aix-workloads-to-azure-with-skytap.svg" :::
+:::image type="content" border="false" source="media/migrate-aix-workloads-to-azure-with-skytap.svg" alt-text="Architecture showing Azure services and Skytap on Azure used to migrate and run AIX workloads on IBM Power Systems." lightbox="media/migrate-aix-workloads-to-azure-with-skytap.svg" :::
 
 *Download a [Visio file](https://arch-center.azureedge.net/migrate-aix-workloads-to-azure-with-skytap.vsdx) of this architecture.*
  
@@ -10,33 +14,35 @@ Skytap on Azure simplifies cloud migration for applications that run on IBM Powe
 
 The numbers in the diagram correspond to the following data flow.
 
-1.  A user on-premises uses a web browser to connect to Azure through [Azure ExpressRoute](/azure/expressroute/expressroute-introduction), which creates a private connection. This web-based app provides a modern interface for the services that run on the AIX LPARs in Skytap on Azure.
+1.  An on-premises user connects to resources in Azure over [Azure ExpressRoute](/azure/expressroute/expressroute-introduction). ExpressRoute provides private connectivity between the organization's network and Microsoft cloud services. A web application hosted in Azure can provide a modern interface to business services that continue to run on AIX LPARs in Skytap on Azure.
 
-1.  Azure Data Box Gateway is deployed on-premises next to the datacenter's existing AIX infrastructure, which includes an AIX Network Installation Management (NIM) server. Data Box Gateway loads the data and completes the system restoration on Azure. AIX backups run using the operating system's native **mksyb** and **savevg** commands.
+1.  Azure Data Box Gateway is deployed in the on-premises environment near the existing AIX infrastructure, which can include an AIX Network Installation Management (NIM) server. The organization creates AIX system and data backups by using native AIX utilities such as mksysb and savevg.
 
-1.  Files that are backed up to Data Box Gateway are migrated to the organization's Azure Blob Storage account through Azure Private Link, an endpoint for privately accessing Azure services.
+1.  Backup data is transferred to Azure Storage. A private endpoint can be used so that traffic to Azure Blob Storage remains on private network paths instead of traversing the public internet.
 
-1.  In the Skytap on Azure environment, the NIM server running Unix is used to restore the base AIX operating system to the LPARs in Skytap on Azure.
+1.  In the Skytap on Azure environment, an AIX NIM server can be used to install or restore the base AIX operating system onto the destination LPARs running on IBM Power infrastructure
 
-1.  The AIX LPAR is rebooted. Any data volume groups are restored through the Data Box Gateway via the Network File System (NFS) protocol. This process is repeated for each LPAR to be restored.
+1.  After the operating system is restored, the AIX LPAR is restarted and application data and volume groups are restored. The process is repeated for each workload included in the migration.
+
+   The exact migration method depends on the source AIX environment, operating-system level, network configuration, storage layout, application dependencies, recovery requirements, and target IBM Power configuration.
 
 ### Components
 
-- [Azure Data Box Gateway](/azure/databox-gateway/data-box-gateway-overview) is a virtual device that you install on-premises. You write data to it by using the NFS and Server Message Block (SMB) protocols, and Data Box Gateway sends the data to Azure. In this architecture, Data Box Gateway facilitates the migration of AIX backup files from on-premises systems to Blob Storage and enables data restoration to LPARs in Skytap on Azure.
+- [Azure Data Box Gateway](/azure/databox-gateway/data-box-gateway-overview)  is a virtual storage appliance that can transfer data between an on-premises environment and Azure Storage. In this architecture, it provides one option for staging AIX backup data before restoring workloads in Skytap on Azure.
 
-- [Azure Virtual Machines](/azure/well-architected/service-guides/virtual-machines) is an infrastructure as a service that provides on-demand, scalable computing power. A virtual machine (VM) gives you the flexibility of virtualization without having to buy and maintain the physical hardware that runs it. In this architecture, Virtual Machines hosts the modern web application that provides a user interface for accessing AIX resources that run in Skytap on Azure.
+- [Azure Virtual Machines](/azure/well-architected/service-guides/virtual-machines) provides scalable compute resources in Azure. In this architecture, an Azure VM can host a web application or other application-tier services that communicate with workloads running in Skytap on Azure.
 
-- [Azure Virtual Network](/azure/well-architected/service-guides/virtual-network) is the fundamental building block for your private network in Azure. As a software-defined network, a virtual network provides an isolated environment for VMs and other Azure resources to communicate with each other, the internet, and on-premises networks. In this architecture, Virtual Network provides secure network isolation and connectivity between the web application, the Skytap on Azure environment, and on-premises systems.
+- [Azure Virtual Network](/azure/well-architected/service-guides/virtual-network) provides network isolation and connectivity for Azure resources. It can be used with ExpressRoute and other networking services to connect Azure-native application components with on-premises systems and workloads hosted in Skytap on Azure.
 
-- [Blob Storage](/azure/well-architected/service-guides/azure-blob-storage) is an object storage solution designed for storing unstructured data, such as text and binary data. In this architecture, Blob Storage serves as the destination for AIX backup files transferred from Data Box Gateway during the migration process.
+- [Blob Storage](/azure/well-architected/service-guides/azure-blob-storage) provides massively scalable object storage. In this architecture, Blob Storage can be used to stage AIX backup data during migration.
 
-- [ExpressRoute](/azure/well-architected/service-guides/azure-expressroute) is a connectivity service that extends your on-premises networks to Microsoft cloud services, including Azure and Microsoft 365, over a private connection that a connectivity provider facilitates. In this architecture, ExpressRoute provides secure, high-bandwidth connectivity between on-premises users and the Azure-hosted web application.
+- [ExpressRoute](/azure/well-architected/service-guides/azure-expressroute) extends an organization's on-premises network to Microsoft cloud services over a private connection. ExpressRoute can provide private connectivity among on-premises infrastructure, Azure resources, and the Skytap on Azure environment.
 
   For more information about how ExpressRoute works with Skytap, see [Skytap Get started with Azure networking guide](https://www.skytap.com/blog/skytap-on-azure-networking-considerations/).
 
-- [Private Link](/azure/private-link/private-link-overview) is a networking service that creates your own private link service in your virtual network so that the web client can consume resources from Skytap on Azure. In this architecture, Private Link enables the web application to securely access resources that run in the Skytap on Azure environment over a private connection.
+- [Private Link](/azure/private-link/private-link-overview) provides private connectivity to supported Azure services through private endpoints. In this architecture, a private endpoint can be used to access Azure Storage without sending storage traffic over the public internet.
 
-- [Kyndryl Cloud Uplift (formerly Skytap on Azure)](https://marketplace.microsoft.com/search/products?search=Kyndryl%20Cloud%20Uplift) is a service that runs IBM Power and x86 traditional workloads on hardware in Azure datacenters. Organizations that run applications on IBM Power–based AIX or Linux operating systems can migrate them to Azure with little upfront effort. In this architecture, Skytap on Azure provides the native IBM Power9 infrastructure to host migrated AIX LPARs without requiring application refactoring.
+- [Kyndryl Cloud Uplift (formerly Skytap on Azure)](https://marketplace.microsoft.com/search/products?search=Kyndryl%20Cloud%20Uplift) provides an environment for running traditional IBM Power and x86 workloads in Azure datacenters. Applications running on AIX, IBM i, or Linux on Power can be migrated while retaining their existing operating-system and 10 infrastructure.
 
   For more information about how Skytap on [Azure connectivity](https://www.skytap.com/blog/skytap-on-azure-networking-considerations/) works, see [Skytap Well-Architected Framework](https://skytap.github.io/well-architected-framework/).
 
@@ -50,11 +56,13 @@ The numbers in the diagram correspond to the following data flow.
 
 ## Scenario details
 
-Since its introduction in 1986, the AIX operating system has been a top choice for large, mission-critical applications. AIX was designed for virtualization from the ground up using multiple LPARs that run in isolation on a given IBM Power System server. Until now, your choice was to rearchitect applications to move them to the cloud or bear the expense of maintaining them on-premises or in a co-located facility.
+Many organizations continue to depend on applications built for IBM Power Systems because those applications contain business logic, operational processes, and data accumulated over many years. Rewriting these applications before moving to the cloud can introduce significant cost, risk, and project duration.
 
-Skytap on Azure is dedicated hardware that provides a native IBM Power9 infrastructure with the AIX operating system. Full, cloud-based backup and recovery are provided with Azure Storage. You don't need to refactor or rearchitect applications to run them in Skytap on Azure, and the way you manage existing IBM Power applications on-premises changes very little.
+Skytap on Azure provides an alternative migration path. Organizations can move supported AIX workloads to IBM Power infrastructure hosted in Azure datacenters while preserving the existing operating-system and application architecture. They can then modernize incrementally by integrating those workloads with Azure services.
 
-After migration, you can start taking advantage of native Azure services to modernize applications, if desired, or continue to run systems on AIX. Either way, you immediately gain the resilience, flexibility, high availability, and scalability of Azure.
+For example, an application can continue to run its existing business logic on AIX while new web, API, analytics, integration, automation, or AI capabilities are developed using Azure-native services.
+
+This approach separates infrastructure migration from application modernization. Organizations can first reduce their dependency on on-premises Power Systems infrastructure and then modernize individual application components according to business priorities.
 
 ### Potential use cases
 
@@ -74,9 +82,18 @@ These considerations implement the pillars of the Azure Well-Architected Framewo
 
 ### Reliability
 
-Reliability ensures your application can meet the commitments you make to your customers. For more information, see [Design review checklist for Reliability](/azure/well-architected/reliability/checklist).
+Reliability ensures that a workload can meet the availability and recovery commitments made to its users. For more information, see the [Design review checklist for Reliability](/azure/well-architected/reliability/checklist).
 
-Skytap on Azure has high reliability built on IBM Power9 Systems backed by SSD RAID 6+1 storage and 10 Gb/sec backplane networking.
+Design availability and disaster recovery around the business requirements of the complete application, including the AIX LPARs, Azure-native application components, network connectivity, storage, and external dependencies.
+
+For production AIX workloads, consider:
+
+-   Application recovery objectives, including recovery time objective (RTO) and recovery point objective (RPO).
+-   Redundant application components where the application architecture supports them.
+-   Backup and recovery procedures for AIX system and application data.
+-   Connectivity dependencies between Azure, Skytap on Azure, and on-premises systems.
+-   Capacity availability in a recovery region.
+-   Regular recovery testing rather than relying only on successful backup completion.
 
 Skytap on Azure is supported by a service-level agreement (SLA) of 99.95% availability.
 
@@ -98,11 +115,13 @@ See more pricing information on the [Plans + Pricing](https://marketplace.micros
 
 ### Performance Efficiency
 
-Performance Efficiency is the ability of your workload to scale to meet the demands placed on it by users in an efficient manner. For more information, see [Design review checklist for Performance Efficiency](/azure/well-architected/performance-efficiency/checklist).
+Performance Efficiency is the ability of a workload to adapt efficiently to changes in demand. For more information, see the [Design review checklist for Performance Efficiency](/azure/well-architected/performance-efficiency/checklist).
 
-Skytap on Azure provides high performance and efficiency that support demanding workloads up to 16 vCPUs and 512 GB of memory, while providing the benefits of cloud scale. With capacity on demand and pay-as-you-go pricing, you save the expense of adding hardware on premises to support higher demands. You can use smaller LPARs instead of a few large ones and configure resources as needed.
+Size AIX LPARs according to measured processor, memory, storage, and I/O requirements rather than reproducing the physical configuration of the source Power Systems server.
 
-Skytap on Azure promotes operational excellence through its native support for AIX on IBM Power9 systems that are hosted within Azure datacenters and managed by Microsoft.
+Skytap on Azure provides IBM Power capacity that can be allocated to LPARs according to workload requirements. Power9 and Power10 platforms can have different processor, memory, and capacity characteristics, so benchmark performance-sensitive applications on the intended target configuration.
+
+For hybrid applications, also evaluate network latency and throughput between the AIX workload and Azure services. Application tiers that exchange large amounts of synchronous traffic should be placed and connected to minimize unnecessary network latency.
 
 One of the advantages of an Azure–based solution is the ability to scale out. Scaling makes nearly limitless compute capacity available to an application. Azure supports multiple methods to scale out compute power, such as [virtual machine scale sets](/azure/virtual-machine-scale-sets/overview) and
 [load balancing](/azure/load-balancer/load-balancer-overview) across a cluster. Other platform as a service (PaaS) options scale compute resources dynamically. In addition, applications on Azure can also use
